@@ -3,4 +3,4 @@ project(TPSEC C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(TPSEC main.c)
+add_executable(TPSEC parser.c)

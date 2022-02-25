@@ -47,7 +47,7 @@ void verifyFile(FILE * file) {
 
 }
 
-void readDHeader(FILE * file, int width, int height, int type) {
+void readDBlock(FILE * file, int width, int height, int type) {
     char headBuffer; // Just to verify that the first letter correspond to the block name
     int blockSize;
     char * bytes = (char *) malloc(((width*height)/8)*sizeof(char));
@@ -84,7 +84,7 @@ void readDHeader(FILE * file, int width, int height, int type) {
     free(bytes);
 }
 
-void readCHeader(FILE * file, int width, int height, int type) {
+void readCBlock(FILE * file, int width, int height, int type) {
     char headBuffer; // Just to verify that the first letter correspond to the block name
     int blockSize;
 
@@ -112,10 +112,10 @@ void readCHeader(FILE * file, int width, int height, int type) {
     readBytes(lineBuffer, blockSize);
     printf("\"\n");
 
-    readDHeader(file, width, height, type);
+    readDBlock(file, width, height, type);
 }
 
-void readHHeader(FILE * file) {
+void readBlocks(FILE * file) {
     char headBuffer; // Just to verify that the first letter correspond to the block name
     int blockSize;
     int widthBuffer; // Buffer that contains width (4 bytes)
@@ -168,7 +168,7 @@ void readHHeader(FILE * file) {
         exit(1);
     }
 
-    readCHeader(file, widthBuffer, heightBuffer, typeBuffer);
+    readCBlock(file, widthBuffer, heightBuffer, typeBuffer);
 
 }
 
@@ -186,7 +186,7 @@ void parser(char * fileName) {
 
     verifyFile(file);
 
-    readHHeader(file);
+    readBlocks(file);
 
     fclose(file);
 }
