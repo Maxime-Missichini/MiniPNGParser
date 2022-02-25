@@ -19,16 +19,12 @@ void printImage(const int * bits, int width, int height) {
     }
 }
 
-int * bytesToBits(const char * bytes, int blockSize) {
-    int * bits = (int *)malloc(sizeof(int) * blockSize * 8);
-
+void bytesToBits(const char * bytes, int blockSize, int * bits) {
     for(int i=0; i < blockSize; i++){
         for(int j=0; j<8; j++) {
             bits[(i*blockSize)+j] = ((bytes[i] << j) & 0x80) ? 1 : 0;
         }
     }
-
-    return bits;
 }
 
 void verifyFile(FILE * file) {
@@ -50,7 +46,7 @@ void verifyFile(FILE * file) {
 void readDBlock(FILE * file, int width, int height, int type) {
     char headBuffer; // Just to verify that the first letter correspond to the block name
     int blockSize;
-    char * bytes = (char *) malloc(((width*height)/8)*sizeof(char));
+    char * bytes = (char *) malloc(sizeof(char)*((width*height)/8));
 
     fread(&headBuffer, sizeof(char), 1, file);
 
@@ -65,22 +61,27 @@ void readDBlock(FILE * file, int width, int height, int type) {
 
     blockSize = htonl(blockSize); // Convert to bigendian
 
-    printf("Block size: %d\n", blockSize);
-    if (type == 1){
-        if(blockSize*8 != (width*height)) {
-            printf("Error block D is not containing data corresponding to previous information from block H\n");
-            fclose(file);
-            exit(1);
-        }
+    printf("Block D size: %d\n", blockSize);
+
+    if(blockSize*8 != (width*height)) {
+        printf("Error block D is not containing data corresponding to previous information from block H\n");
+        fclose(file);
+        exit(1);
     }
 
     fread(bytes, sizeof(char), blockSize, file);
 
-    int * bits = bytesToBits(bytes, blockSize);
+    if (type == 0){
+        int * bits = (int *)malloc(sizeof(int)*blockSize*8);
 
-    printImage(bits, width, height);
+        bytesToBits(bytes, blockSize, bits);
 
-    free(bits);
+        printImage(bits, width, height);
+        free(bits);
+    }else if (type == 1){
+
+    }
+
     free(bytes);
 }
 
@@ -100,11 +101,11 @@ void readCBlock(FILE * file, int width, int height, int type) {
 
     blockSize = htonl(blockSize); // Convert to bigendian
 
-    printf("Block size: %d\n", blockSize);
+    printf("Block C size: %d\n", blockSize);
 
     char lineBuffer[blockSize];
 
-    printf("Commentaires:\n");
+    printf("Comments:\n");
 
     fread(lineBuffer, sizeof(char), blockSize, file);
 
@@ -134,7 +135,7 @@ void readBlocks(FILE * file) {
 
     blockSize = htonl(blockSize); // Convert to bigendian
 
-    printf("Block size: %d\n", blockSize);
+    printf("Block H size: %d\n", blockSize);
 
 
     fread(&widthBuffer, sizeof(int), 1, file);
@@ -154,13 +155,15 @@ void readBlocks(FILE * file) {
 
     printf("Pixel type: %x ", typeBuffer);
 
-    if (typeBuffer == 0) {
+    int typeToInt = atoi(&typeBuffer);
+
+    if (typeToInt == 0) {
         printf("(Black and white)\n");
-    }else if (typeBuffer == 1) {
+    }else if (typeToInt == 1) {
         printf("(50 Shade of grey (lol))\n");
-    }else if (typeBuffer == 2) {
+    }else if (typeToInt == 2) {
         printf("(Palette)\n");
-    }else if (typeBuffer == 3) {
+    }else if (typeToInt == 3) {
         printf("(24 bits colors)\n");
     }else{
         printf("Error in pixel type\n");
@@ -182,13 +185,26 @@ void parser(char * fileName) {
         exit(1);
     }
 
-    printf("File content:\n");
+    printf("File %s content:\n", fileName);
 
     verifyFile(file);
 
     readBlocks(file);
 
+    printf("\n\n\n");
+
     fclose(file);
+}
+
+void testBlackAndWhite() {
+    parser("../minipng-samples/bw/ok/A.mp");
+    parser("../minipng-samples/bw/ok/Maxime.mp");
+
+    // Currently not supported files
+    //parser("../minipng-samples/bw/ok/black.mp");
+    //parser("../minipng-samples/bw/ok/split-black.mp");
+    //parser("../minipng-samples/bw/ok/uneven-dimensions.mp");
+    //parser("../minipng-samples/bw/ok/unordered_A.mp");
 }
 
 int main(int argc, char ** argv) {
@@ -199,6 +215,8 @@ int main(int argc, char ** argv) {
     }
 
     parser(argv[1]);
+
+    //testBlackAndWhite();
 
     return 0;
 }
