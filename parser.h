@@ -7,10 +7,10 @@
 #include <netinet/in.h>
 
 void readBytes(char * bytes, int len);
-void printImage(const int * bits, int width, int height);
+void printImage(const int *bits, int width, int height, int type);
 void bytesToBits(const char * bytes, int blockSize, int * bits);
 void verifyFile(FILE * file);
-void readDBlock(FILE *file, int width, int height, int type, int previous, int *bitmap);
+void readDBlock(FILE *file, int width, int height, int type, int previous, int *bitmap, char lastRead);
 void readCBlock(FILE *file, int width, int height, int type, bool invalid, int previous, int *bitmap);
 void readBlocks(FILE * file);
 void parser(char * fileName);

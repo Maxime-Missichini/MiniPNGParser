@@ -7,13 +7,22 @@ void readBytes(char * bytes, int len) {
     }
 }
 
-void printImage(const int * bits, int width, int height) {
-    for(int i=0; i<height; i++){
-        for(int j=0; j<width; j++){
-            if (bits[i*height+j] == 1) printf(" ");
-            else printf("X");
+void printImage(const int *bits, int width, int height, int type) {
+    if (type == 0) {
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                if (bits[i * height + j] == 1) printf(" ");
+                else printf("X");
+            }
+            printf("\n");
         }
-        printf("\n");
+    }else if (type == 1){
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                printf("%02X", bits[i * height + j]);
+            }
+            printf("\n");
+        }
     }
 }
 
@@ -41,19 +50,19 @@ void verifyFile(FILE * file) {
 
 }
 
-void readDBlock(FILE *file, int width, int height, int type, int previous, int *bitmap) {
+void readDBlock(FILE *file, int width, int height, int type, int previous, int *bitmap, char lastRead) {
     char headBuffer; // Just to verify that the first letter correspond to the block name
     int blockSize;
     char * bytes = (char *) malloc(sizeof(char)*((width*height)/8));
 
-    fread(&headBuffer, sizeof(char), 1, file);
+    if (lastRead != 'D') fread(&headBuffer, sizeof(char), 1, file);
 
     if (strncmp(&headBuffer, "D", sizeof(char)) != 0){
-        if(strncmp(&headBuffer, "C", sizeof(char)) != 0){
+        if(strncmp(&headBuffer, "C", sizeof(char)) != 0 && lastRead != 'D'){
             printf("Error: Invalid block D structure\n");
             fclose(file);
             exit(1);
-        }else{
+        }else if(lastRead != 'D'){
             readCBlock(file, width, height, type, true, 0, bitmap);
         }
     }
@@ -74,11 +83,21 @@ void readDBlock(FILE *file, int width, int height, int type, int previous, int *
             readCBlock(file, width, height, type, true, blockSize * 8, bitmap);
         }
 
-        printImage(bitmap, width, height);
+        printImage(bitmap, width, height, 0);
         free(bytes);
 
     }else if (type == 1){
 
+        for(int i=0; i<blockSize;i++){
+            bitmap[previous+i] = (int)bytes[i];
+        }
+
+        if((blockSize + previous) != (width*height)) {
+            readCBlock(file, width, height, type, true, blockSize, bitmap);
+        }
+
+        printImage(bitmap, width, height, 1);
+        free(bytes);
     }
 }
 
@@ -94,7 +113,10 @@ void readCBlock(FILE *file, int width, int height, int type, bool invalid, int p
             return;
         }
 
-        if (!invalid) readDBlock(file, width, height, type, 0, bitmap);
+        if (!invalid && strncmp(&headBuffer, "D", sizeof(char)) == 0) {
+            readDBlock(file, width, height, type, 0, bitmap, 'D');
+            return;
+        }
         else return;
     }
 
@@ -114,7 +136,7 @@ void readCBlock(FILE *file, int width, int height, int type, bool invalid, int p
     readBytes(lineBuffer, blockSize);
     printf("\"\n");
 
-    readDBlock(file, width, height, type, 0, bitmap);
+    readDBlock(file, width, height, type, 0, bitmap, 0);
 }
 
 void readBlocks(FILE * file) {
@@ -163,8 +185,14 @@ void readBlocks(FILE * file) {
         printf("(50 Shade of grey)\n");
     }else if (typeBuffer == 2) {
         printf("(Palette)\n");
+        printf("This type of pixel is not currently supported.\n");
+        fclose(file);
+        exit(1);
     }else if (typeBuffer == 3) {
         printf("(24 bits colors)\n");
+        printf("This type of pixel is not currently supported.\n");
+        fclose(file);
+        exit(1);
     }else{
         printf("Error in pixel type\n");
         fclose(file);
@@ -175,8 +203,6 @@ void readBlocks(FILE * file) {
     int * bitmap = (int *)malloc(sizeof(int) * (widthBuffer * heightBuffer) * 2 * 8);
 
     readCBlock(file, widthBuffer, heightBuffer, typeBuffer, false, 0, bitmap);
-
-    free(bitmap);
 }
 
 void parser(char * fileName) {
@@ -185,7 +211,7 @@ void parser(char * fileName) {
     file = fopen(fileName,"r");
 
     if (file == NULL){
-        printf("Error opening the file\n");
+        printf("Error opening the file %s\n", fileName);
         exit(1);
     }
 
@@ -209,6 +235,11 @@ void testBlackAndWhite() {
     // Not supported, see doc to know why
     // parser("../minipng-samples/bw/ok/unordered_A.mp");
     // parser("../minipng-samples/bw/ok/uneven-dimensions.mp");
+
+    // These files are not ok so it crashes
+    // parser("../minipng-samples/bw/nok/missing-data.mp");
+    // parser("../minipng-samples/bw/nok/missing-header.mp");
+    // parser("../minipng-samples/bw/nok/wrong-magic.mp");
 }
 
 void testGrey() {
