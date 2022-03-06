@@ -231,10 +231,10 @@ void testBlackAndWhite() {
     parser("../minipng-samples/bw/ok/Maxime.mp");
     parser("../minipng-samples/bw/ok/black.mp");
     parser("../minipng-samples/bw/ok/split-black.mp");
+    parser("../minipng-samples/bw/ok/uneven-dimensions.mp");
 
     // Not supported, see doc to know why
     // parser("../minipng-samples/bw/ok/unordered_A.mp");
-    // parser("../minipng-samples/bw/ok/uneven-dimensions.mp");
 
     // These files are not ok so it crashes
     // parser("../minipng-samples/bw/nok/missing-data.mp");
