@@ -41,7 +41,7 @@ void verifyFile(FILE * file) {
 
 }
 
-void readDBlock(FILE *file, int width, int height, int type, int previous) {
+void readDBlock(FILE *file, int width, int height, int type, int previous, int *bitmap) {
     char headBuffer; // Just to verify that the first letter correspond to the block name
     int blockSize;
     char * bytes = (char *) malloc(sizeof(char)*((width*height)/8));
@@ -54,7 +54,7 @@ void readDBlock(FILE *file, int width, int height, int type, int previous) {
             fclose(file);
             exit(1);
         }else{
-            readCBlock(file, width, height, type, true, 0);
+            readCBlock(file, width, height, type, true, 0, bitmap);
         }
     }
 
@@ -66,26 +66,23 @@ void readDBlock(FILE *file, int width, int height, int type, int previous) {
 
     fread(bytes, sizeof(char), blockSize, file);
 
-    // *2 in size for safety measures, corrupted top size otherwise
-    int * bitmap = (int *)malloc(sizeof(int) * blockSize * 2 * 8);
-
     if (type == 0){
         bytesToBits(bytes, blockSize, bitmap);
+
+        // Safety
+        if((blockSize*8 + previous) != (width*height)) {
+            readCBlock(file, width, height, type, true, blockSize * 8, bitmap);
+        }
+
         printImage(bitmap, width, height);
+        free(bytes);
+
     }else if (type == 1){
 
     }
-
-    free(bitmap);
-    free(bytes);
-
-    // Safety
-    if(blockSize*8 != (width*height)) {
-        readCBlock(file, width, height, type, true, blockSize*8);
-    }
 }
 
-void readCBlock(FILE *file, int width, int height, int type, bool invalid, int previous) {
+void readCBlock(FILE *file, int width, int height, int type, bool invalid, int previous, int *bitmap) {
     char headBuffer; // Just to verify that the first letter correspond to the block name
     int blockSize;
 
@@ -97,7 +94,7 @@ void readCBlock(FILE *file, int width, int height, int type, bool invalid, int p
             return;
         }
 
-        if (!invalid) readDBlock(file, width, height, type, 0);
+        if (!invalid) readDBlock(file, width, height, type, 0, bitmap);
         else return;
     }
 
@@ -117,7 +114,7 @@ void readCBlock(FILE *file, int width, int height, int type, bool invalid, int p
     readBytes(lineBuffer, blockSize);
     printf("\"\n");
 
-    readDBlock(file, width, height, type, 0);
+    readDBlock(file, width, height, type, 0, bitmap);
 }
 
 void readBlocks(FILE * file) {
@@ -174,8 +171,12 @@ void readBlocks(FILE * file) {
         exit(1);
     }
 
-    readCBlock(file, widthBuffer, heightBuffer, typeBuffer, false, 0);
+    // *2 in size for safety measures, corrupted top size otherwise
+    int * bitmap = (int *)malloc(sizeof(int) * (widthBuffer * heightBuffer) * 2 * 8);
 
+    readCBlock(file, widthBuffer, heightBuffer, typeBuffer, false, 0, bitmap);
+
+    free(bitmap);
 }
 
 void parser(char * fileName) {
@@ -225,7 +226,7 @@ int main(int argc, char ** argv) {
 
     testBlackAndWhite();
 
-    //testGrey();
+    testGrey();
 
     return 0;
 }
