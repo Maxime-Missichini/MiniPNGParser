@@ -79,7 +79,10 @@ void readDBlock(FILE *file, int width, int height, int type, int previous, int *
 
         // Safety
         if((blockSize*8 + previous) != (width*height)) {
-            readCBlock(file, width, height, type, true, blockSize * 8, bitmap);
+            if ((width != height) && (((blockSize*8 + previous) < (width*height) + 8) && ((blockSize*8 + previous) > ((width*height))))) {
+            }else {
+                readCBlock(file, width, height, type, true, blockSize * 8, bitmap);
+            }
         }
 
         printImage(bitmap, width, height, 0);
@@ -109,6 +112,19 @@ void readCBlock(FILE *file, int width, int height, int type, bool invalid, int p
     if (strncmp(&headBuffer, "C", sizeof(char)) != 0){
         // Block C is not mandatory
         if (previous != 0) {
+            if (type == 0){
+                if ((previous*8) != (width*height)){
+                    printf("Width and Height from header do not correspond to data\n");
+                    fclose(file);
+                    exit(1);
+                }
+            }else if (type == 1){
+                if ((previous) != (width*height)) {
+                    printf("Width and Height from header do not correspond to data\n");
+                    fclose(file);
+                    exit(1);
+                }
+            }
             return;
         }
 
@@ -135,7 +151,7 @@ void readCBlock(FILE *file, int width, int height, int type, bool invalid, int p
     readBytes(lineBuffer, blockSize);
     printf("\"\n");
 
-    readDBlock(file, width, height, type, 0, bitmap, 0);
+    readDBlock(file, width, height, type, previous, bitmap, 0);
 }
 
 void readBlocks(FILE * file) {
@@ -236,6 +252,8 @@ void testBlackAndWhite() {
     // parser("../minipng-samples/bw/ok/unordered_A.mp");
 
     // These files are not ok so it crashes
+    // parser("../minipng-samples/bw/nok/broken-dimensions.mp");
+    // parser("../minipng-samples/bw/nok/broken-dimensions2.mp");
     // parser("../minipng-samples/bw/nok/missing-data.mp");
     // parser("../minipng-samples/bw/nok/missing-header.mp");
     // parser("../minipng-samples/bw/nok/wrong-magic.mp");
@@ -248,7 +266,9 @@ void testGrey() {
 int main(int argc, char ** argv) {
 
     if (argc != 2) {
-        printf("Error: no file path provided\n");
+        printf("Error: no arguments provided\n"
+               "-t to run all tests\n"
+               "file_path to parse a single file\n");
         exit(1);
     }
 
