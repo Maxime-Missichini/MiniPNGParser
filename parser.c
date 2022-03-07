@@ -54,9 +54,11 @@ void readDBlock(FILE *file, int width, int height, int type, int previous, int *
     int blockSize;
     char * bytes = (char *) malloc(sizeof(char)*((width*height)/8));
 
+    // If last byte read wasn't a D = we are coming from C
     if (lastRead != 'D') fread(&headBuffer, sizeof(char), 1, file);
 
     if (strncmp(&headBuffer, "D", sizeof(char)) != 0){
+        // If it's not a D then it may be a C
         if(strncmp(&headBuffer, "C", sizeof(char)) != 0 && lastRead != 'D'){
             printf("Error: Invalid block D structure\n");
             fclose(file);
@@ -68,7 +70,7 @@ void readDBlock(FILE *file, int width, int height, int type, int previous, int *
 
     fread(&blockSize, sizeof(int), 1, file);
 
-    blockSize = htonl(blockSize); // Convert to bigendian
+    blockSize = (int)htonl(blockSize); // Convert to bigendian
 
     printf("Block D size: %d\n", blockSize);
 
@@ -79,12 +81,13 @@ void readDBlock(FILE *file, int width, int height, int type, int previous, int *
 
         // Safety
         if((blockSize*8 + previous) != (width*height)) {
+            // For uneven dimensions only
             if ((width != height) && (((blockSize*8 + previous) < (width*height) + 8) && ((blockSize*8 + previous) > ((width*height))))) {
+                // Do nothing
             }else {
                 readCBlock(file, width, height, type, true, blockSize * 8, bitmap);
             }
         }
-
         printImage(bitmap, width, height, 0);
         free(bytes);
 
@@ -137,7 +140,7 @@ void readCBlock(FILE *file, int width, int height, int type, bool invalid, int p
 
     fread(&blockSize, sizeof(int), 1, file);
 
-    blockSize = htonl(blockSize); // Convert to bigendian
+    blockSize = (int)htonl(blockSize); // Convert to bigendian
 
     printf("Block C size: %d\n", blockSize);
 
