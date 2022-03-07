@@ -1,4 +1,3 @@
-#include <stdbool.h>
 #include "parser.h"
 
 void readBytes(char * bytes, int len) {
@@ -164,14 +163,14 @@ void readBlocks(FILE * file) {
 
     fread(&widthBuffer, sizeof(int), 1, file);
 
-    widthBuffer = htonl(widthBuffer); // Convert to bigendian
+    widthBuffer = (int)htonl(widthBuffer); // Convert to bigendian
 
     printf("Width: %d\n", widthBuffer);
 
 
     fread(&heightBuffer, sizeof(int), 1, file);
 
-    heightBuffer = htonl(heightBuffer); // Convert to bigendian
+    heightBuffer = (int)htonl(heightBuffer); // Convert to bigendian
 
     printf("Height: %d\n", heightBuffer);
 
@@ -253,11 +252,14 @@ int main(int argc, char ** argv) {
         exit(1);
     }
 
-    //parser(argv[1]);
-
-    testBlackAndWhite();
-
-    testGrey();
+    // There is two choices here, either we just run test typing -t or we just
+    // want to use the parser on a single file
+    if (strncmp(argv[1], "-t", sizeof(char)*2) == 0){
+        testBlackAndWhite();
+        testGrey();
+    }else{
+        parser(argv[1]);
+    }
 
     return 0;
 }
